@@ -12,6 +12,7 @@ import (
 
 type DB struct {
 	coll *mongo.Collection
+	client *mongo.Client
 }
 
 var db = &DB{}
@@ -38,4 +39,5 @@ func Init() {
 	}
 	coll := client.Database("rinha").Collection("accounts")
 	db.coll = coll
+	db.client = client
 }

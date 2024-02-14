@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -96,7 +97,7 @@ type Transacoes struct {
 
 type Saldo struct {
 	Total       int64  `bson:"total" json:"total"`
-	DataExtrato string `bson:"data_extrato" json:"data_extrato"`
+	DataExtrato string `json:"data_extrato"`
 	Limite      int64  `bson:"limite" json:"limite"`
 }
 
@@ -108,7 +109,7 @@ type AccountInfo struct {
 func GetAccInfo(id int32) (*AccountInfo, error) {
 
 	opts := options.FindOneOptions{
-		Projection: bson.D{{"saldo.data_extrato", "$currentDate"}, {"saldo.total", 1}, {"saldo.limite", 1}, {"ultimas_transacoes", 1}},
+		Projection: bson.D{{"saldo.total", 1}, {"saldo.limite", 1}, {"ultimas_transacoes", 1}},
 	}
 	acc := &AccountInfo{}
 
@@ -118,6 +119,8 @@ func GetAccInfo(id int32) (*AccountInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	acc.Saldo.DataExtrato = time.Now().Format(time.RFC3339)
 
 	return acc, err
 }
