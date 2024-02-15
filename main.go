@@ -82,5 +82,5 @@ func main() {
 
 	port := os.Getenv("HTTP_PORT")
 
-	http.ListenAndServe(fmt.Sprintf("127.0.0.1:%s", port), mux)
+	http.ListenAndServe(fmt.Sprintf("0.0.0.0:%s", port), mux)
 }

@@ -24,8 +24,8 @@ services:
     network_mode: "host"
     environment:
       HTTP_PORT: 8081
-      MAX_POOL_SIZE: 300
-      MIN_POOL_SIZE: 100
+      MAX_POOL_SIZE: 128
+      MIN_POOL_SIZE: 64
     depends_on:
       - mongo
     deploy:
@@ -40,8 +40,8 @@ services:
     network_mode: "host"
     environment:
       HTTP_PORT: 8082
-      MAX_POOL_SIZE: 300
-      MIN_POOL_SIZE: 100
+      MAX_POOL_SIZE: 128
+      MIN_POOL_SIZE: 64
 
   nginx:
     image: nginx:latest
