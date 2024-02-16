@@ -132,6 +132,7 @@ type Saldo struct {
 }
 
 type AccountInfo struct {
+	ID                int64        `bson:"_id" json:"total"`
 	Saldo             Saldo        `bson:"saldo" json:"saldo"`
 	UltimasTransacoes []Transacoes `bson:"ultimas_transacoes" json:"ultimas_transacoes"`
 }
