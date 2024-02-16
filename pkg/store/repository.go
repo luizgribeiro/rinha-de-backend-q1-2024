@@ -3,7 +3,9 @@ package store
 import (
 	"context"
 	"fmt"
+	"os"
 	"slices"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -33,9 +35,15 @@ func (t Transacao) EhValida() error {
 var syncker = make(map[int32](chan int32))
 
 func createSyncKerForId(id int32) {
-	syncker[id] = make(chan int32, 3)
+	workers := os.Getenv("N_WORKERS")
 
-	for i := range 5 {
+	w, err := strconv.Atoi(workers)
+	if err != nil {
+		panic(err)
+	}
+	syncker[id] = make(chan int32, w)
+
+	for i := range w {
 		syncker[id] <- int32(i)
 	}
 }
