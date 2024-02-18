@@ -13,6 +13,5 @@ FROM scratch
 WORKDIR /app
 
 COPY --from=build /app/api ./
-COPY ./seed.json /app/seed.json
 
 CMD [ "./api" ]

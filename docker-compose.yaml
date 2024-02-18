@@ -8,15 +8,17 @@ services:
     ports:
       - 27017:27017
     volumes:
-      - ./data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    tmpfs:
+      - /data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
     deploy:
       resources:
         limits:
-          cpus: "0.7"
-          memory: "250MB"
+          cpus: "0.72"
+          memory: "465MB"
 
   api01: &api
     image: luizgribeiro/rinha2:latest
@@ -25,16 +27,16 @@ services:
     environment:
       HTTP_PORT: 8081
       MAX_POOL_SIZE: 350
-      N_WORKERS: 20
+      N_WORKERS: 100
       MIN_POOL_SIZE: 150
-      IS_SEEDER: true
+      IS_SEEDER: false
     depends_on:
       - mongo
     deploy:
       resources:
         limits:
           cpus: "0.3"
-          memory: "50MB"
+          memory: "30MB"
 
   api02:
     <<: *api
@@ -44,7 +46,7 @@ services:
       IS_SEEDER: false
       HTTP_PORT: 8082
       MAX_POOL_SIZE: 350
-      N_WORKERS: 20
+      N_WORKERS: 100
       MIN_POOL_SIZE: 150
 
   nginx:
@@ -60,5 +62,5 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.2"
-          memory: "80MB"
+          cpus: "0.18"
+          memory: "25MB"
