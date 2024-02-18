@@ -3,9 +3,9 @@ package store
 import (
 	"context"
 	"fmt"
-	// "os"
+	"os"
 	"slices"
-	// "strconv"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -32,25 +32,25 @@ func (t Transacao) EhValida() error {
 	return nil
 }
 
-// var syncker = make(map[int32](chan int32))
+var syncker = make(map[int32](chan int32))
 
-// func createSyncKerForId(id int32) {
-// 	workers := os.Getenv("N_WORKERS")
-//
-// 	w, err := strconv.Atoi(workers)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	syncker[id] = make(chan int32, w)
-//
-// 	for i := range w {
-// 		syncker[id] <- int32(i)
-// 	}
-// }
-//
-// func releaseNext(id int32) {
-// 	syncker[id] <- 0
-// }
+func createSyncKerForId(id int32) {
+	workers := os.Getenv("N_WORKERS")
+
+	w, err := strconv.Atoi(workers)
+	if err != nil {
+		panic(err)
+	}
+	syncker[id] = make(chan int32, w)
+
+	for i := range w {
+		syncker[id] <- int32(i)
+	}
+}
+
+func releaseNext(id int32) {
+	syncker[id] <- 0
+}
 
 type ResultTransfer struct {
 	Saldo  int32 `bson:"saldo" json:"saldo"`
@@ -59,11 +59,11 @@ type ResultTransfer struct {
 
 func AddTransfer(id int32, transacao *Transacao) (*ResultTransfer, error) {
 
-	// _, ok := syncker[id]
-	//
-	// if !ok {
-	// 	createSyncKerForId(id)
-	// }
+	_, ok := syncker[id]
+
+	if !ok {
+		createSyncKerForId(id)
+	}
 
 	var opVal int32
 	var filter bson.D
@@ -108,8 +108,8 @@ func AddTransfer(id int32, transacao *Transacao) (*ResultTransfer, error) {
 	}
 
 	acc := &ResultTransfer{}
-	// <-syncker[id]
-	// defer releaseNext(id)
+	<-syncker[id]
+	defer releaseNext(id)
 	err := db.coll.FindOneAndUpdate(context.TODO(), filter, mongo.Pipeline{project, set}, &opts).Decode(&acc)
 	if err != nil {
 		return nil, err
