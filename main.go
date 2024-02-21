@@ -1,86 +1,68 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"luizgribeiro/rinha-backend-q1-24/pkg/store"
-	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
 	store.Init()
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /clientes/{id}/transacoes", func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
-		transacao := store.Transacao{}
-		d := json.NewDecoder(r.Body)
+	app := fiber.New()
+	app.Post("/clientes/:id/transacoes", func(c *fiber.Ctx) error {
+		id := c.Params("id")
 
-		err := d.Decode(&transacao)
-		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			return
+		transacao := &store.Transacao{}
+		if err := c.BodyParser(transacao); err != nil {
+			return c.Status(422).SendString(err.Error())
 		}
 
-		err = transacao.EhValida()
-		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			return
+		if err := transacao.EhValida(); err != nil {
+			return c.SendStatus(422)
 		}
 
 		_id, err := strconv.Atoi(id)
 		if err != nil {
-			fmt.Fprintf(w, "id conversoin error\n", err)
-			return
+			return c.SendStatus(400)
 		}
 
 		if _id < 1 || _id > 5 {
-			w.WriteHeader(404)
-			return
+			return c.SendStatus(404)
 		}
 
-		accountStatus, err := store.AddTransfer(int32(_id), &transacao)
+		accStatus, err := store.AddTransfer(int32(_id), transacao)
 		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			return
+			return c.SendStatus(422)
 		}
 
-		payload, err := json.Marshal(accountStatus)
-		if err != nil {
-			fmt.Fprintf(w, "some error!\n", err)
-			return
-		}
-		_, err = w.Write(payload)
+		return c.Status(200).SendString(accStatus)
 	})
 
-	mux.HandleFunc("GET /clientes/{id}/extrato", func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
+	app.Get("/clientes/:id/extrato", func(c *fiber.Ctx) error {
+		id := c.Params("id")
 		i, err := strconv.Atoi(id)
 		if err != nil {
-			fmt.Fprintf(w, "parsing id error!\n", err)
+			return c.SendStatus(400)
 		}
 
 		if i < 1 || i > 5 {
-			w.WriteHeader(404)
+			return c.SendStatus(404)
 		}
 
 		info, err := store.GetAccInfo(int32(i))
 		if err != nil {
-			fmt.Fprintf(w, "some error!\n", err)
+			fmt.Println(err, i)
+			c.SendStatus(404)
 		}
-		mi, err := json.Marshal(info)
-
-		if err != nil {
-			fmt.Fprintf(w, "marshal error!\n", err)
-
-		}
-		_, err = w.Write(mi)
+		return c.SendString(info)
 	})
 
 	fmt.Println("Starting http server")
 
 	port := os.Getenv("HTTP_PORT")
 
-	http.ListenAndServe(fmt.Sprintf("0.0.0.0:%s", port), mux)
+	app.Listen(fmt.Sprintf("0.0.0.0:%s", port))
 }

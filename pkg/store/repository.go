@@ -14,9 +14,10 @@ import (
 )
 
 type Transacao struct {
-	Valor     int32  `bson:"valor" json:"valor"`
-	Tipo      string `bson:"tipo" json:"tipo"`
-	Descricao string `bson:"descricao" json:"descricao"`
+	Valor       int32  `bson:"v" json:"valor"`
+	Tipo        string `bson:"t" json:"tipo"`
+	Descricao   string `bson:"d" json:"descricao"`
+	RealizadaEm string `bson:"r" json:"realizada_em"`
 }
 
 func (t Transacao) EhValida() error {
@@ -53,24 +54,26 @@ func releaseNext(id int32) {
 }
 
 type ResultTransfer struct {
-	Saldo  int32 `bson:"saldo" json:"saldo"`
-	Limite int32 `bson:"limite" json:"limite"`
+	Saldo  int32 `bson:"t" json:"saldo"`
+	Limite int32 `bson:"l" json:"limite"`
 }
 
-func AddTransfer(id int32, transacao *Transacao) (*ResultTransfer, error) {
+func AddTransfer(id int32, transacao *Transacao) (string, error) {
 
 	_, ok := syncker[id]
 
 	if !ok {
 		createSyncKerForId(id)
 	}
+	//TODO: verificar impacto de time como unix time
+	transacao.RealizadaEm = time.Now().Format(time.RFC3339)
 
 	var opVal int32
 	var filter bson.D
 
 	if transacao.Tipo == "d" {
 		opVal = -transacao.Valor
-		filter = bson.D{{"_id", id}, {"gordurinha", bson.D{{"$gte", transacao.Valor}}}}
+		filter = bson.D{{"_id", id}, {"g", bson.D{{"$gte", transacao.Valor}}}}
 	} else {
 		opVal = transacao.Valor
 		filter = bson.D{{"_id", id}}
@@ -78,32 +81,32 @@ func AddTransfer(id int32, transacao *Transacao) (*ResultTransfer, error) {
 
 	project := bson.D{
 		{"$project", bson.D{
-			{"id", 1},
-			{"saldo", 1},
-			{"gordurinha", 1},
-			{"ultimas_transacoes", bson.D{
-				{"$slice", []interface{}{"$ultimas_transacoes", 9}},
+			{"t", 1},
+			{"l", 1},
+			{"g", 1},
+			{"u", bson.D{
+				{"$slice", []interface{}{"$u", 9}},
 			}},
 		}},
 	}
 
 	set := bson.D{
 		{"$set", bson.D{
-			{"gordurinha", bson.D{
-				{"$add", []interface{}{"$gordurinha", opVal}},
+			{"g", bson.D{
+				{"$add", []interface{}{"$g", opVal}},
 			}},
-			{"saldo.total", bson.D{
-				{"$add", []interface{}{"$saldo.total", opVal}},
+			{"t", bson.D{
+				{"$add", []interface{}{"$t", opVal}},
 			}},
-			{"ultimas_transacoes", bson.D{
-				{"$concatArrays", []interface{}{[]interface{}{transacao}, "$ultimas_transacoes"}},
+			{"u", bson.D{
+				{"$concatArrays", []interface{}{[]interface{}{transacao}, "$u"}},
 			}},
 		}},
 	}
 
 	after := options.After
 	opts := options.FindOneAndUpdateOptions{
-		Projection:     bson.D{{"limite", "$saldo.limite"}, {"saldo", "$saldo.total"}},
+		Projection:     bson.D{{"l", 1}, {"t", 1}},
 		ReturnDocument: &after,
 	}
 
@@ -112,46 +115,62 @@ func AddTransfer(id int32, transacao *Transacao) (*ResultTransfer, error) {
 	defer releaseNext(id)
 	err := db.coll.FindOneAndUpdate(context.TODO(), filter, mongo.Pipeline{project, set}, &opts).Decode(&acc)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return acc, nil
+	return fmt.Sprintf("{\"saldo\":%d,\"limite\":%d}",acc.Saldo, acc.Limite), nil
 }
 
 type Transacoes struct {
-	Valor       int64  `bson:"valor" json:"valor"`
-	Tipo        string `bson:"tipo" json:"tipo"`
-	Descricao   string `bson:"descricao" json:"descricao"`
-	RealizadaEm string `bson:"realizada_em" json:"realizada_em"`
+	Valor       int64  `bson:"v" json:"valor"`
+	Tipo        string `bson:"t" json:"tipo"`
+	Descricao   string `bson:"d" json:"descricao"`
+	RealizadaEm string `bson:"r" json:"realizada_em"`
 }
 
 type Saldo struct {
-	Total       int64  `bson:"total" json:"total"`
+	Total       int64  `bson:"t" json:"total"`
 	DataExtrato string `json:"data_extrato"`
-	Limite      int64  `bson:"limite" json:"limite"`
+	Limite      int64  `bson:"l" json:"limite"`
 }
 
 type AccountInfo struct {
-	ID                int64        `bson:"_id" json:"total"`
-	Saldo             Saldo        `bson:"saldo" json:"saldo"`
-	UltimasTransacoes []Transacoes `bson:"ultimas_transacoes" json:"ultimas_transacoes"`
+	Total       int64  `bson:"t" json:"total"`
+	Limite      int64  `bson:"l" json:"limite"`
+	UltimasTransacoes []Transacoes `bson:"u" json:"ultimas_transacoes"`
 }
 
-func GetAccInfo(id int32) (*AccountInfo, error) {
+func GetAccInfo(id int32) (string, error) {
 
 	opts := options.FindOneOptions{
-		Projection: bson.D{{"saldo.total", 1}, {"saldo.limite", 1}, {"ultimas_transacoes", 1}},
+		Projection: bson.D{
+			{"t", 1},
+			{"l", 1},
+			{"u", 1},
+		},
 	}
 	acc := &AccountInfo{}
 
 	filter := bson.D{{"_id", id}}
 	err := db.coll.FindOne(context.TODO(), filter, &opts).Decode(acc)
-
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	acc.Saldo.DataExtrato = time.Now().Format(time.RFC3339)
+	return fmt.Sprintf("{\"saldo\":{\"total\":%d,\"limite\":%d,\"data_extrato\":\"%s\"},\"ultimas_transacoes\":%s}",acc.Total, acc.Limite, time.Now().Format(time.RFC3339), marshalUltimasTransacoes(acc) ), err
+}
 
-	return acc, err
+func marshalUltimasTransacoes(acc *AccountInfo) string {
+	s := ""
+	maxLen := len(acc.UltimasTransacoes) - 1
+
+	for i, trans := range acc.UltimasTransacoes {
+		sep := ","
+		if i == maxLen {
+			sep = ""
+		}
+		s += fmt.Sprintf("{\"valor\":%d,\"tipo\":\"%s\",\"descricao\":\"%s\",\"realizada_em\":\"%s\"}%s", trans.Valor, trans.Tipo, trans.Descricao, trans.RealizadaEm, sep)
+	}
+
+	return fmt.Sprintf("[%s]", s)
 }

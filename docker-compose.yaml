@@ -17,7 +17,7 @@ services:
       resources:
         limits:
           cpus: "0.7"
-          memory: "400MB"
+          memory: "250MB"
 
   api01: &api
     image: luizgribeiro/rinha2-mongo:latest
@@ -27,9 +27,7 @@ services:
     environment:
       HTTP_PORT: 8081
       MAX_POOL_SIZE: 350
-      N_WORKERS: 20
       MIN_POOL_SIZE: 150
-      IS_SEEDER: false
     depends_on:
       - mongo
     deploy:
@@ -42,10 +40,8 @@ services:
     <<: *api
     hostname: api02
     environment:
-      IS_SEEDER: false
       HTTP_PORT: 8082
       MAX_POOL_SIZE: 350
-      N_WORKERS: 20
       MIN_POOL_SIZE: 150
 
   nginx:

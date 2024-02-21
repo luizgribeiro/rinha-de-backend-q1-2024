@@ -5,49 +5,38 @@ db.accounts.insertMany(
   [
     {
       "_id": 1,
-      "saldo": {
-        "total": 0,
-        "limite": 100000
-      },
-      "ultimas_transacoes": [],
-      "gordurinha": 100000
+      "t": 0,
+      "l": 100000,
+      "u": [],
+      "g": 100000,
     },
     {
       "_id": 2,
-      "saldo": {
-        "total": 0,
-        "limite": 80000
-      },
-      "ultimas_transacoes": [],
-      "gordurinha": 80000
+      "t": 0,
+      "l": 80000,
+      "u": [],
+      "g": 80000
     },
     {
       "_id": 3,
-      "saldo": {
-        "total": 0,
-        "limite": 1000000
-      },
-      "ultimas_transacoes": [],
-      "gordurinha": 1000000
+      "t": 0,
+      "l": 1000000,
+      "u": [],
+      "g": 1000000
     },
     {
       "_id": 4,
-      "saldo": {
-        "total": 0,
-        "limite": 10000000
-      },
-      "ultimas_transacoes": [],
-      "gordurinha": 10000000
+      "t": 0,
+      "l": 10000000,
+      "u": [],
+      "g": 10000000
     },
     {
       "_id": 5,
-      "saldo": {
-        "total": 0,
-        "limite": 500000
-      },
-      "ultimas_transacoes": [],
-      "gordurinha": 500000
+      "t": 0,
+      "l": 500000,
+      "u": [],
+      "g": 500000
     }
-
   ]
 );
