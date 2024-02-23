@@ -21,6 +21,7 @@ func main() {
 		}
 
 		if err := transacao.EhValida(); err != nil {
+			// fmt.Println("valida error")
 			return c.SendStatus(422)
 		}
 
@@ -35,6 +36,7 @@ func main() {
 
 		accStatus, err := store.AddTransfer(int32(_id), transacao)
 		if err != nil {
+			// fmt.Println("trans error", err)
 			return c.SendStatus(422)
 		}
 
