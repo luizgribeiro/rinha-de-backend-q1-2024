@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
+	// "strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -26,7 +26,7 @@ type ResultTransfer struct {
 var limites map[int32]int32 = map[int32]int32{
 	1: 100000,
 	2: 80000,
-	3:1000000,
+	3: 1000000,
 	4: 10000000,
 	5: 500000,
 }
@@ -44,21 +44,21 @@ func (t Transacao) EhValida() error {
 	return nil
 }
 
-func (t *Transacao) serializeTrans() string {
-	return fmt.Sprintf("{\"valor\":%d,\"tipo\":\"%s\",\"descricao\":\"%s\",\"realizada_em\":\"%s\"}", t.Valor, t.Tipo, t.Descricao,time.Now().Format(time.RFC3339))
-}
+// func (t *Transacao) serializeTrans() string {
+// 	return fmt.Sprintf("{\"valor\":%d,\"tipo\":\"%s\",\"descricao\":\"%s\",\"realizada_em\":\"%s\"}", t.Valor, t.Tipo, t.Descricao,time.Now().Format(time.RFC3339))
+// }
 
 
 func AddTransfer(id int32, transacao *Transacao) (string, error) {
 
-	serialTrans := transacao.serializeTrans()
+	// serialTrans := transacao.serializeTrans()
 
 	var opVal int32
 	var filter bson.D
 
 	if transacao.Tipo == "d" {
 		opVal = -transacao.Valor
-		filter = bson.D{{"_id", id}, {"t", bson.D{{"$gte", transacao.Valor}}}}
+		filter = bson.D{{"_id", id}, {"g", bson.D{{"$gte", transacao.Valor}}}}
 	} else {
 		opVal = transacao.Valor
 		filter = bson.D{{"_id", id}}
@@ -81,7 +81,7 @@ func AddTransfer(id int32, transacao *Transacao) (string, error) {
 				{"$add", []interface{}{"$t", opVal}},
 			}},
 			{"u", bson.D{
-				{"$concatArrays", []interface{}{[]interface{}{serialTrans}, bson.D{
+				{"$concatArrays", []interface{}{[]interface{}{/*serialTrans*/transacao}, bson.D{
 					{"$slice", []interface{}{"$u", 9}},
 				}}},
 			}},
@@ -119,7 +119,7 @@ type Saldo struct {
 type AccountInfo struct {
 	Total             int64        `bson:"t" json:"total"`
 	// Limite            int64        `bson:"l" json:"limite"`
-	UltimasTransacoes []string `bson:"u" json:"ultimas_transacoes"`
+	UltimasTransacoes []Transacoes `bson:"u" json:"ultimas_transacoes"`
 }
 
 func GetAccInfo(id int32) (string, error) {
@@ -143,18 +143,18 @@ func GetAccInfo(id int32) (string, error) {
 
 func marshalUltimasTransacoes(acc *AccountInfo) string {
 
-	return fmt.Sprintf("[%s]", strings.Join(acc.UltimasTransacoes, ","))
+	// return fmt.Sprintf("[%s]", strings.Join(acc.UltimasTransacoes, ","))
 
-	// s := ""
-	// maxLen := len(acc.UltimasTransacoes) - 1
-	//
-	// for i, trans := range acc.UltimasTransacoes {
-	// 	sep := ","
-	// 	if i == maxLen {
-	// 		sep = ""
-	// 	}
-	// 	s += fmt.Sprintf("{\"valor\":%d,\"tipo\":\"%s\",\"descricao\":\"%s\",\"realizada_em\":\"%s\"}%s", trans.Valor, trans.Tipo, trans.Descricao, trans.RealizadaEm, sep)
-	// }
-	//
-	// return fmt.Sprintf("[%s]", s)
+	s := ""
+	maxLen := len(acc.UltimasTransacoes) - 1
+
+	for i, trans := range acc.UltimasTransacoes {
+		sep := ","
+		if i == maxLen {
+			sep = ""
+		}
+		s += fmt.Sprintf("{\"valor\":%d,\"tipo\":\"%s\",\"descricao\":\"%s\",\"realizada_em\":\"%s\"}%s", trans.Valor, trans.Tipo, trans.Descricao, trans.RealizadaEm, sep)
+	}
+
+	return fmt.Sprintf("[%s]", s)
 }

@@ -28,6 +28,7 @@ services:
       HTTP_PORT: 8081
       MAX_POOL_SIZE: 350
       MIN_POOL_SIZE: 150
+      PRE_ALLOC: 1000
     depends_on:
       - mongo
     deploy:
@@ -43,6 +44,7 @@ services:
       HTTP_PORT: 8082
       MAX_POOL_SIZE: 350
       MIN_POOL_SIZE: 150
+      PRE_ALLOC: 1000
 
   nginx:
     image: nginx:latest
