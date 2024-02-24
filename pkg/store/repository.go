@@ -6,6 +6,8 @@ import (
 	"slices"
 	// "strings"
 	"time"
+	"os"
+	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -47,6 +49,34 @@ func (t Transacao) EhValida() error {
 // func (t *Transacao) serializeTrans() string {
 // 	return fmt.Sprintf("{\"valor\":%d,\"tipo\":\"%s\",\"descricao\":\"%s\",\"realizada_em\":\"%s\"}", t.Valor, t.Tipo, t.Descricao,time.Now().Format(time.RFC3339))
 // }
+var syncker = make(map[int32](chan int32))
+var buffSize = 1000
+
+var transBuffers = make(map[int32][]ResultTransfer)
+
+func initializeBuffers(size int) {
+	for i := range 5 {
+		transBuffers[int32(i+1)] = make([]ResultTransfer, buffSize)
+	}
+}
+
+func createSyncKerForId(id int32) {
+	workers := os.Getenv("N_WORKERS")
+
+	w, err := strconv.Atoi(workers)
+	if err != nil {
+		panic(err)
+	}
+	syncker[id] = make(chan int32, w)
+
+	for i := range w {
+		syncker[id] <- int32(i)
+	}
+}
+
+func releaseNext(id int32) {
+	syncker[id] <- 0
+}
 
 
 func AddTransfer(id int32, transacao *Transacao) (string, error) {
@@ -94,6 +124,8 @@ func AddTransfer(id int32, transacao *Transacao) (string, error) {
 		ReturnDocument: &after,
 	}
 
+	<-syncker[id]
+	defer releaseNext(id)
 	acc := &ResultTransfer{}
 	err := db.coll.FindOneAndUpdate(context.TODO(), filter, mongo.Pipeline{/*project,*/ set}, &opts).Decode(&acc)
 	if err != nil {

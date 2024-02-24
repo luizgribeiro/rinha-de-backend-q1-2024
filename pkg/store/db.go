@@ -42,4 +42,7 @@ func Init() {
 	db.coll = client.Database("rinha").Collection("accounts")
 	db.client = client
 
+	for i := range 5 {
+		createSyncKerForId(int32(i+1))
+	}
 }
