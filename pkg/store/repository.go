@@ -124,8 +124,8 @@ func AddTransfer(id int32, transacao *Transacao) (string, error) {
 		ReturnDocument: &after,
 	}
 
-	<-syncker[id]
-	defer releaseNext(id)
+	// <-syncker[id]
+	// defer releaseNext(id)
 	acc := &ResultTransfer{}
 	err := db.coll.FindOneAndUpdate(context.TODO(), filter, mongo.Pipeline{/*project,*/ set}, &opts).Decode(&acc)
 	if err != nil {
